@@ -4,7 +4,7 @@ import sys
 
 #subprocess.call([sys.executable, "-m", "pip", "install", 'boto3'])
 #subprocess.call([sys.executable, "-m", "pip", "install", 'gluoncv', '--pre', '--upgrade'])
-
+import boto3
 import argparse
 import os
 import shutil
@@ -254,7 +254,6 @@ def train(net, train_data, val_data, eval_metric, ctx, args):
     export_block(args.save_prefix, net, preprocess=True, layout='HWC')
 
 
-            
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Train SSD networks.')
     parser.add_argument('--network', type=str, default='mobilenet1.0', help="Base network name which serves as feature extraction base.")
@@ -351,4 +350,9 @@ if __name__ == '__main__':
 
     # training
     train(net, train_data, val_data, eval_metric, ctx, args)
-
+    # Export to S3
+    s3_client = boto3.client('s3')
+    params = args.save_prefix + '-0000.params'
+    symbols = args.save_prefix + '-symbol.json'
+    response1 = s3_client.upload_file(params, 'cv-edge-aws', params)
+    response2 = s3_client.upload_file(symbols, 'cv-edge-aws', symbols)
