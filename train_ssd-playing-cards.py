@@ -48,7 +48,7 @@ class VOCLike(VOCDetection):
 
  
 def get_dataset(dataset, args):
-    if dataset.lower() == 'voc' or dataset.lower == 'custom':
+    if dataset.lower() == 'voc':
         train_dataset = VOCLike(root='/opt/ml/input/data/training', splits=(('Train', 'train'),))
         val_dataset = VOCLike(root='/opt/ml/input/data/training', splits=(('Validate', 'val'),))
         #train_dataset = VOCLike(root='VOC-PlayingCards', splits=(('VOC2019', 'train'),))
@@ -242,7 +242,7 @@ if __name__ == '__main__':
     
     parser.add_argument('--batch-size', type=int, default=64, help='Training mini-batch size')
     
-    parser.add_argument('--dataset', type=str, default='custom', help='Training dataset. Now support voc.')
+    parser.add_argument('--dataset', type=str, default='voc', help='Training dataset. Now support voc.')
     
     parser.add_argument('--dataset-root', type=str, default='VOCTemplate', help='Path of the directory where the dataset is located.')
     
