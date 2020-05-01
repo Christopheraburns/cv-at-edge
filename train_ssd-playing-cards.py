@@ -33,6 +33,7 @@ from gluoncv.data.transforms.presets.yolo import YOLO3DefaultTrainTransform
 from gluoncv.data.transforms.presets.yolo import YOLO3DefaultValTransform
 from gluoncv.data.dataloader import RandomTransformDataLoader
 from gluoncv.utils.metrics.voc_detection import VOC07MApMetric
+from gluoncv.utils import export_block
 from gluoncv.utils import LRScheduler, LRSequential
 from mxnet.contrib import amp
 
@@ -89,16 +90,25 @@ def get_dataloader(net, train_dataset, val_dataset, data_shape, batch_size, num_
     return train_loader, val_loader
 
 
+# def save_params(net, best_map, current_map, epoch, save_interval, prefix):
+#     current_map = float(current_map)
+#     if current_map > best_map[0]:
+#         best_map[0] = current_map
+#         net.save_params('{:s}_best.params'.format(prefix, epoch, current_map))
+#         with open(prefix+'_best_map.log', 'a') as f:
+#             f.write('{:04d}:\t{:.4f}\n'.format(epoch, current_map))
+#     if save_interval and epoch % save_interval == 0:
+#         net.save_params('{:s}_{:04d}_{:.4f}.params'.format(prefix, epoch, current_map))
+
 def save_params(net, best_map, current_map, epoch, save_interval, prefix):
     current_map = float(current_map)
     if current_map > best_map[0]:
         best_map[0] = current_map
         net.save_params('{:s}_best.params'.format(prefix, epoch, current_map))
         with open(prefix+'_best_map.log', 'a') as f:
-            f.write('{:04d}:\t{:.4f}\n'.format(epoch, current_map))
+             f.write('{:04d}:\t{:.4f}\n'.format(epoch, current_map))
     if save_interval and epoch % save_interval == 0:
         net.save_params('{:s}_{:04d}_{:.4f}.params'.format(prefix, epoch, current_map))
-
         
 def validate(net, val_data, ctx, eval_metric):
     """Test on validation dataset."""
@@ -329,6 +339,6 @@ if __name__ == '__main__':
     batch_size = args.batch_size
     train_data, val_data = get_dataloader(async_net, train_dataset, val_dataset, args.data_shape, batch_size, args.num_workers, ctx[0])
 
-
     # training
     train(net, train_data, val_data, eval_metric, ctx, args)
+    export_block(args.save_prefix, net, preprocess=True, layout='HWC')
