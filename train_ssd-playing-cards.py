@@ -28,14 +28,15 @@ from gluoncv.data.transforms.presets.ssd import SSDDALIPipeline
 from gluoncv.utils.metrics.voc_detection import VOC07MApMetric
 from gluoncv.utils.metrics.coco_detection import COCODetectionMetric
 from gluoncv.utils.metrics.accuracy import Accuracy
-from mxnet.contrib import amp
 from gluoncv.data import VOCDetection
 from gluoncv.data.transforms.presets.yolo import YOLO3DefaultTrainTransform
 from gluoncv.data.transforms.presets.yolo import YOLO3DefaultValTransform
 from gluoncv.data.dataloader import RandomTransformDataLoader
 from gluoncv.utils.metrics.voc_detection import VOC07MApMetric
 from gluoncv.utils import LRScheduler, LRSequential
+from mxnet.contrib import amp
 
+hvd = None
 
 klasses = ["ac", "2c", "3c", "4c", "5c", "6c", "7c", "8c", "9c", "10c", "jc", "qc", "kc", "ad", "2d", "3d", "4d", "5d", "6d", "7d", "8d", "9d", "10d", "jd", "qd", "kd", "ah", "2h", "3h", "4h", "5h", "6h", "7h", "8h", "9h", "10h", "jh", "qh", "kh", "as", "2s", "3s", "4s", "5s", "6s", "7s", "8s", "9s", "10s", "js", "qs", "ks"]
 
@@ -207,23 +208,23 @@ def train(net, train_data, val_data, eval_metric, ctx, args):
             # by batch-size anymore
             trainer.step(1)
 
-
-            local_batch_size = int(args.batch_size // 1)
-            ce_metric.update(0, [l * local_batch_size for l in cls_loss])
-            smoothl1_metric.update(0, [l * local_batch_size for l in box_loss])
-            if args.log_interval and not (i + 1) % args.log_interval:
-                name1, loss1 = ce_metric.get()
-                name2, loss2 = smoothl1_metric.get()
-                logger.info('[Epoch {}][Batch {}], Speed: {:.3f} samples/sec, {}={:.3f}, {}={:.3f}'.format(
-                        epoch, i, args.batch_size/(time.time()-btic), name1, loss1, name2, loss2))
-            btic = time.time()
+            if (not args.horovod or hvd.rank() == 0):
+                local_batch_size = int(args.batch_size // (hvd.size() if args.horovod else 1))
+                ce_metric.update(0, [l * local_batch_size for l in cls_loss])
+                smoothl1_metric.update(0, [l * local_batch_size for l in box_loss])
+                if args.log_interval and not (i + 1) % args.log_interval:
+                    name1, loss1 = ce_metric.get()
+                    name2, loss2 = smoothl1_metric.get()
+                    logger.info('[Epoch {}][Batch {}], Speed: {:.3f} samples/sec, {}={:.3f}, {}={:.3f}'.format(
+                        epoch, i, args.batch_size / (time.time() - btic), name1, loss1, name2, loss2))
+                btic = time.time()
 
 
         name1, loss1 = ce_metric.get()
         name2, loss2 = smoothl1_metric.get()
         logger.info('[Epoch {}] Training cost: {:.3f}, {}={:.3f}, {}={:.3f}'.format(
                 epoch, (time.time()-tic), name1, loss1, name2, loss2))
-        if (epoch % args.val_interval == 0) or (args.save_interval and epoch % args.save_interval == 0):
+        if not epoch + 1 % args.val_interval == 0:
             # consider reduce the frequency of validation to save time
             map_name, mean_ap = validate(net, val_data, ctx, eval_metric)
             val_msg = '\n'.join(['{}={}'.format(k, v) for k, v in zip(map_name, mean_ap)])
@@ -282,12 +283,16 @@ if __name__ == '__main__':
     
     parser.add_argument('--amp', action='store_true', help='Use MXNet AMP for mixed precision training.')
 
+    parser.add_argument('--horovod', action='store_true', help='Use MXNet Horovod for distributed training. '
+                                                               'Must be run with OpenMPI. '
+                             '--gpus is ignored when using --horovod.')
+
     parser.add_argument('--dali', type=bool, default = False)
+
     args = parser.parse_args()
 
     if args.amp:
         amp.init()
-
 
 
     # fix seed for mxnet, numpy and python builtin random generator.
