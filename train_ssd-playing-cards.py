@@ -243,6 +243,8 @@ def train(net, train_data, val_data, eval_metric, ctx, args):
         else:
             current_map = 0.
         save_params(net, best_map, current_map, epoch, args.save_interval, args.save_prefix)
+    export_block(args.save_prefix, net, preprocess=True, layout='HWC')
+
 
             
 if __name__ == '__main__':
@@ -341,4 +343,4 @@ if __name__ == '__main__':
 
     # training
     train(net, train_data, val_data, eval_metric, ctx, args)
-    export_block(args.save_prefix, net, preprocess=True, layout='HWC')
+
