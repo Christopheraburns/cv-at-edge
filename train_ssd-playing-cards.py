@@ -48,7 +48,7 @@ class VOCLike(VOCDetection):
 
  
 def get_dataset(dataset, args):
-    if dataset.lower() == 'voc':
+    if dataset.lower() == 'voc' or dataset.lower == 'custom':
         train_dataset = VOCLike(root='/opt/ml/input/data/training', splits=(('Train', 'train'),))
         val_dataset = VOCLike(root='/opt/ml/input/data/training', splits=(('Validate', 'val'),))
         #train_dataset = VOCLike(root='VOC-PlayingCards', splits=(('VOC2019', 'train'),))
@@ -135,16 +135,10 @@ def train(net, train_data, val_data, eval_metric, ctx, args):
     """Training pipeline"""
     net.collect_params().reset_ctx(ctx)
 
-    if args.horovod:
-        hvd.broadcast_parameters(net.collect_params(), root_rank=0)
-        trainer = hvd.DistributedTrainer(
-                        net.collect_params(), 'sgd',
-                        {'learning_rate': args.lr, 'wd': args.wd, 'momentum': args.momentum})
-    else:
-        trainer = gluon.Trainer(
-                    net.collect_params(), 'sgd',
-                    {'learning_rate': args.lr, 'wd': args.wd, 'momentum': args.momentum},
-                    update_on_kvstore=(False if args.amp else None))
+    trainer = gluon.Trainer(net.collect_params(), 'sgd', {
+        'learning_rate': args.lr,
+        'wd': args.wd,
+        'momentum': args.momentum}, update_on_kvstore=(False if args.amp else None))
 
     if args.amp:
         amp.init_trainer(trainer)
@@ -213,31 +207,31 @@ def train(net, train_data, val_data, eval_metric, ctx, args):
             # by batch-size anymore
             trainer.step(1)
 
-            if (not args.horovod or hvd.rank() == 0):
-                local_batch_size = int(args.batch_size // (hvd.size() if args.horovod else 1))
-                ce_metric.update(0, [l * local_batch_size for l in cls_loss])
-                smoothl1_metric.update(0, [l * local_batch_size for l in box_loss])
-                if args.log_interval and not (i + 1) % args.log_interval:
-                    name1, loss1 = ce_metric.get()
-                    name2, loss2 = smoothl1_metric.get()
-                    logger.info('[Epoch {}][Batch {}], Speed: {:.3f} samples/sec, {}={:.3f}, {}={:.3f}'.format(
-                        epoch, i, args.batch_size/(time.time()-btic), name1, loss1, name2, loss2))
-                btic = time.time()
 
-        if (not args.horovod or hvd.rank() == 0):
-            name1, loss1 = ce_metric.get()
-            name2, loss2 = smoothl1_metric.get()
-            logger.info('[Epoch {}] Training cost: {:.3f}, {}={:.3f}, {}={:.3f}'.format(
+            local_batch_size = int(args.batch_size // 1)
+            ce_metric.update(0, [l * local_batch_size for l in cls_loss])
+            smoothl1_metric.update(0, [l * local_batch_size for l in box_loss])
+            if args.log_interval and not (i + 1) % args.log_interval:
+                name1, loss1 = ce_metric.get()
+                name2, loss2 = smoothl1_metric.get()
+                logger.info('[Epoch {}][Batch {}], Speed: {:.3f} samples/sec, {}={:.3f}, {}={:.3f}'.format(
+                        epoch, i, args.batch_size/(time.time()-btic), name1, loss1, name2, loss2))
+            btic = time.time()
+
+
+        name1, loss1 = ce_metric.get()
+        name2, loss2 = smoothl1_metric.get()
+        logger.info('[Epoch {}] Training cost: {:.3f}, {}={:.3f}, {}={:.3f}'.format(
                 epoch, (time.time()-tic), name1, loss1, name2, loss2))
-            if (epoch % args.val_interval == 0) or (args.save_interval and epoch % args.save_interval == 0):
-                # consider reduce the frequency of validation to save time
-                map_name, mean_ap = validate(net, val_data, ctx, eval_metric)
-                val_msg = '\n'.join(['{}={}'.format(k, v) for k, v in zip(map_name, mean_ap)])
-                logger.info('[Epoch {}] Validation: \n{}'.format(epoch, val_msg))
-                current_map = float(mean_ap[-1])
-            else:
-                current_map = 0.
-            save_params(net, best_map, current_map, epoch, args.save_interval, args.save_prefix)
+        if (epoch % args.val_interval == 0) or (args.save_interval and epoch % args.save_interval == 0):
+            # consider reduce the frequency of validation to save time
+            map_name, mean_ap = validate(net, val_data, ctx, eval_metric)
+            val_msg = '\n'.join(['{}={}'.format(k, v) for k, v in zip(map_name, mean_ap)])
+            logger.info('[Epoch {}] Validation: \n{}'.format(epoch, val_msg))
+            current_map = float(mean_ap[-1])
+        else:
+            current_map = 0.
+        save_params(net, best_map, current_map, epoch, args.save_interval, args.save_prefix)
 
             
 if __name__ == '__main__':
@@ -248,7 +242,7 @@ if __name__ == '__main__':
     
     parser.add_argument('--batch-size', type=int, default=64, help='Training mini-batch size')
     
-    parser.add_argument('--dataset-type', type=str, default='custom', help='Training dataset. Now support voc.')
+    parser.add_argument('--dataset', type=str, default='custom', help='Training dataset. Now support voc.')
     
     parser.add_argument('--dataset-root', type=str, default='VOCTemplate', help='Path of the directory where the dataset is located.')
     
@@ -284,20 +278,17 @@ if __name__ == '__main__':
     
     parser.add_argument('--seed', type=int, default=233, help='Random seed to be fixed.')
     
-    parser.add_argument('--syncbn', type=bool, default=False, action='store_true', help='Use synchronize BN across devices.')
+    parser.add_argument('--syncbn', action='store_true', help='Use synchronize BN across devices.')
     
-    parser.add_argument('--amp', type=bool, default=False, action='store_true', help='Use MXNet AMP for mixed precision training.')
-    
-    parser.add_argument('--horovod', type=bool, default = False)
-    
+    parser.add_argument('--amp', action='store_true', help='Use MXNet AMP for mixed precision training.')
+
     parser.add_argument('--dali', type=bool, default = False)
     args = parser.parse_args()
 
     if args.amp:
         amp.init()
 
-    if args.horovod:
-        hvd.init()
+
 
     # fix seed for mxnet, numpy and python builtin random generator.
     gutils.random.seed(args.seed)
