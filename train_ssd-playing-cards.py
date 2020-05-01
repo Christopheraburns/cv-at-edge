@@ -104,7 +104,8 @@ def save_params(net, best_map, current_map, epoch, save_interval, prefix):
     current_map = float(current_map)
     if current_map > best_map[0]:
         best_map[0] = current_map
-        net.save_params('{:s}_best.params'.format(prefix, epoch, current_map))
+        #net.save_params('{:s}_best.params'.format(prefix, epoch, current_map))
+        net.save_parameters
         with open(prefix+'_best_map.log', 'a') as f:
              f.write('{:04d}:\t{:.4f}\n'.format(epoch, current_map))
     if save_interval and epoch % save_interval == 0:
@@ -243,6 +244,13 @@ def train(net, train_data, val_data, eval_metric, ctx, args):
         else:
             current_map = 0.
         save_params(net, best_map, current_map, epoch, args.save_interval, args.save_prefix)
+
+    # Convert the model to symbolic format
+    net.hybridize()
+    net(mx.nd.ones((1, 3, 512, 512)).as_in_context(mx.gpu(0)))
+
+    # Export the model with Symbols
+    net.export(args.save_prefix)
     export_block(args.save_prefix, net, preprocess=True, layout='HWC')
 
 
