@@ -299,7 +299,7 @@ if __name__ == '__main__':
     ctx = ctx if ctx else [mx.cpu()]
 
     # network
-    net_name = '_'.join(('ssd', str(args.data_shape), args.network, args.dataset))
+    net_name = '_'.join(('ssd', str(args.data_shape), args.network, 'custom'))
     args.save_prefix += net_name
     
     if args.syncbn and len(ctx) > 1:
