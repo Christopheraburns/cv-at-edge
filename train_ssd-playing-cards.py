@@ -355,8 +355,17 @@ if __name__ == '__main__':
     # training
     train(net, train_data, val_data, eval_metric, ctx, args)
     # Export to S3
-    s3_client = boto3.client('s3')
-    params = args.save_prefix + '-0000.params'
-    symbols = args.save_prefix + '-symbol.json'
-    response1 = s3_client.upload_file(params, 'cv-edge-aws', params)
-    response2 = s3_client.upload_file(symbols, 'cv-edge-aws', symbols)
+    try:
+        print(os.getcwd())
+        s3_client = boto3.client('s3')
+        params = args.save_prefix + '-0000.params'
+        symbols = args.save_prefix + '-symbol.json'
+        if not os.path.exists(params):
+            print("I can't find the params file!")
+        else:
+            print("THe param file is here, WTF is going on?")
+
+        response1 = s3_client.upload_file(params, 'cv-edge-aws', params)
+        response2 = s3_client.upload_file(symbols, 'cv-edge-aws', symbols)
+    except Exception as err:
+        print(err)
