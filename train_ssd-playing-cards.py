@@ -6,8 +6,7 @@ import sys
 #subprocess.call([sys.executable, "-m", "pip", "install", 'gluoncv', '--pre', '--upgrade'])
 subprocess.call([sys.executable, "-m", "pip", "install", 'smdebug', '--extra-index-url', 'https://pip.repos.neuron.amazonaws.com', '--pre', '--upgrade'])
 
-
-
+import tarfile
 import boto3
 import argparse
 import os
@@ -257,6 +256,10 @@ def train(net, train_data, val_data, eval_metric, ctx, args):
     net.export(args.save_prefix)
     export_block(args.save_prefix, net, preprocess=True, layout='HWC')
 
+def reset(tarinfo):
+    tarinfo.uid = tarinfo.gid = 0
+    tarinfo.uname = tarinfo.gname = "root"
+    return tarinfo
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Train SSD networks.')
@@ -354,14 +357,19 @@ if __name__ == '__main__':
 
     # training
     train(net, train_data, val_data, eval_metric, ctx, args)
+
     # Export to S3
     try:
         print(os.getcwd())
         s3_client = boto3.client('s3')
         params = args.save_prefix + '-0000.params'
         symbols = args.save_prefix + '-symbol.json'
+        tfile = "model.tar.gz"
+        tar = tarfile.open(tfile, "w:gz")
+        tar.add(params, filter=reset)
+        tar.add(symbols, filter=reset)
+        tar.close()
 
-        response1 = s3_client.upload_file(params, 'gluon-ssd-models', "newly-trained/" + params)
-        response2 = s3_client.upload_file(symbols, 'gluon-ssd-models',"newly-trained/" + symbols)
+        response1 = s3_client.upload_file(tfile, 'sagemaker-us-east-1-056149205531', tfile)
     except Exception as err:
         print(err)
