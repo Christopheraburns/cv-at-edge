@@ -274,7 +274,7 @@ if __name__ == '__main__':
     
     parser.add_argument('--gpus', type=str, default='0,1,2,3,4,5,6,7', help='Training with GPUs, you can specify 1,3 for example.')
     
-    parser.add_argument('--epochs', type=int, default=2, help='Training epochs.')
+    parser.add_argument('--epochs', type=int, default=75, help='Training epochs.')
     
     parser.add_argument('--resume', type=str, default='', help='Resume from previously saved parameters if not None. '
                         'For example, you can resume from ./ssd_xxx_0123.params')
@@ -360,12 +360,8 @@ if __name__ == '__main__':
         s3_client = boto3.client('s3')
         params = args.save_prefix + '-0000.params'
         symbols = args.save_prefix + '-symbol.json'
-        if not os.path.exists(params):
-            print("I can't find the params file!")
-        else:
-            print("THe param file is here, WTF is going on?")
 
-        response1 = s3_client.upload_file(params, 'cv-edge-aws', params)
-        response2 = s3_client.upload_file(symbols, 'cv-edge-aws', symbols)
+        response1 = s3_client.upload_file(params, 'gluon-ssd-models', "newly-trained/" + params)
+        response2 = s3_client.upload_file(symbols, 'gluon-ssd-models',"newly-trained/" + symbols)
     except Exception as err:
         print(err)
