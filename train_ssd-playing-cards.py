@@ -4,7 +4,7 @@ import sys
 
 #subprocess.call([sys.executable, "-m", "pip", "install", 'boto3'])
 #subprocess.call([sys.executable, "-m", "pip", "install", 'gluoncv', '--pre', '--upgrade'])
-subprocess.call([sys.executable, "-m", "pip", "install", 'smdebug', '--extra-index-url', 'https://pip.repos.neuron.amazonaws.com'])
+subprocess.call([sys.executable, "-m", "pip", "install", 'smdebug', '--extra-index-url', 'https://pip.repos.neuron.amazonaws.com', '--pre', '--upgrade'])
 
 
 
