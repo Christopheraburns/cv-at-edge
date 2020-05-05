@@ -2,7 +2,7 @@
 import subprocess
 import sys
 
-#subprocess.call([sys.executable, "-m", "pip", "install", 'mxnet-cu101', 'gluoncv', '--pre', '--upgrade'])
+subprocess.call([sys.executable, "-m", "pip", "install", 'mxnet-cu101', 'gluoncv', '--pre', '--upgrade'])
 subprocess.call([sys.executable, "-m", "pip", "install", 'smdebug', '--extra-index-url', 'https://pip.repos.neuron.amazonaws.com', '--pre', '--upgrade'])
 
 import tarfile
@@ -53,8 +53,8 @@ class VOCLike(VOCDetection):
  
 def get_dataset(dataset, args):
     if dataset.lower() == 'voc':
-        train_dataset = VOCLike(root='/opt/ml/input/data/training', splits=(('Train', 'train'),))
-        val_dataset = VOCLike(root='/opt/ml/input/data/training', splits=(('Validate', 'val'),))
+        train_dataset = VOCLike(root='/opt/ml/input/data/training', splits=(('VOCTrain', 'train'),))
+        val_dataset = VOCLike(root='/opt/ml/input/data/training', splits=(('VOCValidate', 'val'),))
         #train_dataset = VOCLike(root='VOC-PlayingCards', splits=(('VOC2019', 'train'),))
         #val_dataset = VOCLike(root='VOC-PlayingCards', splits=(('VOC2018', 'val'),))
         val_metric = VOC07MApMetric(iou_thresh=0.5, class_names=val_dataset.classes)
