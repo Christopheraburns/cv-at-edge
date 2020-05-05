@@ -247,13 +247,16 @@ def train(net, train_data, val_data, eval_metric, ctx, args):
             current_map = 0.
         save_params(net, best_map, current_map, epoch, args.save_interval, args.save_prefix)
 
+    #net.sym
+    #model.symbol.save(os.path.join(model_dir, 'model-symbol.json'))
+    #model.save_params(os.path.join(model_dir, 'model-0000.params'))
     # Convert the model to symbolic format
-    net.hybridize()
-    net(mx.nd.ones((1, 3, 512, 512)).as_in_context(mx.gpu(0)))
+    #net.hybridize()
+    #net(mx.nd.ones((1, 3, 512, 512)).as_in_context(mx.gpu(0)))
 
     # Export the model with Symbols
-    net.export(args.save_prefix)
-    export_block(args.save_prefix, net, preprocess=True, layout='HWC')
+    #net.export(args.save_prefix)
+    #export_block(args.save_prefix, net, preprocess=True, layout='HWC')
 
 def reset(tarinfo):
     tarinfo.uid = tarinfo.gid = 0
@@ -276,7 +279,7 @@ if __name__ == '__main__':
     
     parser.add_argument('--gpus', type=str, default='0,1,2,3,4,5,6,7', help='Training with GPUs, you can specify 1,3 for example.')
     
-    parser.add_argument('--epochs', type=int, default=50, help='Training epochs.')
+    parser.add_argument('--epochs', type=int, default=1, help='Training epochs.')
     
     parser.add_argument('--resume', type=str, default='', help='Resume from previously saved parameters if not None. '
                         'For example, you can resume from ./ssd_xxx_0123.params')
@@ -361,14 +364,15 @@ if __name__ == '__main__':
     try:
         print(os.getcwd())
         s3_client = boto3.client('s3')
-        params = args.save_prefix + '-0000.params'
-        symbols = args.save_prefix + '-symbol.json'
-        tfile = "model.tar.gz"
-        tar = tarfile.open(tfile, "w:gz")
-        tar.add(params, filter=reset)
-        tar.add(symbols, filter=reset)
-        tar.close()
+        params = args.save_prefix + '_best.params'
+        #params = args.save_prefix + '-0000.params'
+        #symbols = args.save_prefix + '-symbol.json'
+        #tfile = "model.tar.gz"
+        #tar = tarfile.open(tfile, "w:gz")
+        #tar.add(params, filter=reset)
+        #tar.add(symbols, filter=reset)
+        #tar.close()
 
-        response1 = s3_client.upload_file(tfile, 'sagemaker-us-east-1-056149205531', tfile)
+        response1 = s3_client.upload_file(params, 'sagemaker-us-east-1-056149205531', params)
     except Exception as err:
         print(err)
