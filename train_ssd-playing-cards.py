@@ -92,27 +92,19 @@ def get_dataloader(net, train_dataset, val_dataset, data_shape, batch_size, num_
     return train_loader, val_loader
 
 
-# def save_params(net, best_map, current_map, epoch, save_interval, prefix):
-#     current_map = float(current_map)
-#     if current_map > best_map[0]:
-#         best_map[0] = current_map
-#         net.save_params('{:s}_best.params'.format(prefix, epoch, current_map))
-#         with open(prefix+'_best_map.log', 'a') as f:
-#             f.write('{:04d}:\t{:.4f}\n'.format(epoch, current_map))
-#     if save_interval and epoch % save_interval == 0:
-#         net.save_params('{:s}_{:04d}_{:.4f}.params'.format(prefix, epoch, current_map))
-
 def save_params(net, best_map, current_map, epoch, save_interval, prefix):
     current_map = float(current_map)
     if current_map > best_map[0]:
         best_map[0] = current_map
         #net.save_params('{:s}_best.params'.format(prefix, epoch, current_map))
-        net.save_parameters
+        net.save_parameters('{}_best.params'.format(prefix))
         with open(prefix+'_best_map.log', 'a') as f:
              f.write('{:04d}:\t{:.4f}\n'.format(epoch, current_map))
     if save_interval and epoch % save_interval == 0:
         net.save_params('{:s}_{:04d}_{:.4f}.params'.format(prefix, epoch, current_map))
-        
+        net.save_parameters('{:s}_{:04d}_{:.4f}.params'.format(prefix, epoch, current_map))
+
+
 def validate(net, val_data, ctx, eval_metric):
     """Test on validation dataset."""
     eval_metric.reset()
