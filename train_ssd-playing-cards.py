@@ -354,7 +354,11 @@ if __name__ == '__main__':
 
     # Export to S3
     try:
-        print(os.getcwd())
+
+        for root, directory, files in os.walk(os.getcwd()):
+            for file in files:
+                print(file)
+
         s3_client = boto3.client('s3')
         params = args.save_prefix + '_best.params'
         #params = args.save_prefix + '-0000.params'
