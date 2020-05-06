@@ -271,7 +271,7 @@ if __name__ == '__main__':
     
     parser.add_argument('--gpus', type=str, default='0,1,2,3,4,5,6,7', help='Training with GPUs, you can specify 1,3 for example.')
     
-    parser.add_argument('--epochs', type=int, default=1, help='Training epochs.')
+    parser.add_argument('--epochs', type=int, default=50, help='Training epochs.')
     
     parser.add_argument('--resume', type=str, default='', help='Resume from previously saved parameters if not None. '
                         'For example, you can resume from ./ssd_xxx_0123.params')
