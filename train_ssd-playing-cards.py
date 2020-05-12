@@ -2,7 +2,7 @@
 import subprocess
 import sys
 
-subprocess.call([sys.executable, "-m", "pip", "install", 'mxnet-cu101', 'gluoncv', '--pre', '--upgrade'])
+subprocess.call([sys.executable, "-m", "pip", "install", 'mxnet-cu101==1.6', 'gluoncv==0.7'])
 subprocess.call([sys.executable, "-m", "pip", "install", 'smdebug', '--extra-index-url', 'https://pip.repos.neuron.amazonaws.com', '--pre', '--upgrade'])
 
 import tarfile
